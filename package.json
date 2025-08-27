@@ -1,0 +1,16 @@
+{
+  "name": "youtube-music-download",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "fluent-ffmpeg": "^2.1.3"
+  }
+}
