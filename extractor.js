@@ -17,21 +17,28 @@ function download(urlStr) {
       hostname: parsedUrl.hostname,
       path: parsedUrl.pathname + parsedUrl.search,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+      },
     };
 
-    protocol.get(options, (res) => {
-      // Handle redirects
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return resolve(download(res.headers.location));
-      }
+    protocol
+      .get(options, (res) => {
+        // Handle redirects
+        if (
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
+          return resolve(download(res.headers.location));
+        }
 
-      const chunks = [];
-      res.on('data', chunk => chunks.push(chunk));
-      res.on('end', () => resolve(Buffer.concat(chunks).toString()));
-      res.on('error', reject);
-    }).on('error', reject);
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve(Buffer.concat(chunks).toString()));
+        res.on('error', reject);
+      })
+      .on('error', reject);
   });
 }
 
@@ -49,22 +56,29 @@ async function extractYouTubeVideoUrls(playlistUrl) {
     // Method 1: Try to extract from ytInitialData
     const initialDataRegex = /var\s+ytInitialData\s*=\s*({.*?});\s*</s;
     const match = html.match(initialDataRegex);
-    
+
     if (match) {
       try {
         const initialData = JSON.parse(match[1]);
-        
+
         // Navigate through the nested structure to find playlist videos
-        const contents = initialData?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer?.contents;
-        
+        const contents =
+          initialData?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]
+            ?.tabRenderer?.content?.sectionListRenderer?.contents?.[0]
+            ?.itemSectionRenderer?.contents?.[0]?.playlistVideoListRenderer
+            ?.contents;
+
         if (contents) {
           for (const content of contents) {
             const videoId = content.playlistVideoRenderer?.videoId;
-            if (videoId) videos.add(`https://www.youtube.com/watch?v=${videoId}`);
+            if (videoId)
+              videos.add(`https://www.youtube.com/watch?v=${videoId}`);
           }
         }
       } catch (parseError) {
-        console.log('Failed to parse ytInitialData, trying alternative method...');
+        console.log(
+          'Failed to parse ytInitialData, trying alternative method...'
+        );
       }
     }
 
@@ -72,7 +86,7 @@ async function extractYouTubeVideoUrls(playlistUrl) {
     if (videos.size === 0) {
       const videoIdRegex = /"videoId":"([a-zA-Z0-9_-]{11})"/g;
       let regexMatch;
-      
+
       while ((regexMatch = videoIdRegex.exec(html)) !== null) {
         videos.add(`https://www.youtube.com/watch?v=${regexMatch[1]}`);
       }
@@ -113,25 +127,26 @@ async function main(playlistUrl) {
   }
 
   console.log(`Extracting videos from playlist: ${playlistId}`);
-  
+
   try {
     const videoUrls = await extractYouTubeVideoUrls(playlistUrl);
-    
+
     console.log(`\nFound ${videoUrls.length} videos:`);
     videoUrls.forEach((url, index) => {
       console.log(`${index + 1}. ${url}`);
     });
-    
+
     // Save to file
     const outputFile = `playlist.txt`;
     fs.writeFileSync(outputFile, videoUrls.join('\n'));
     console.log(`\nVideo URLs saved to: ${outputFile}`);
-    
+
     return videoUrls; // Return the URLs for potential further processing
   } catch (error) {
     console.error('Error:', error.message);
     return [];
   }
 }
+
 
 module.exports = main;
